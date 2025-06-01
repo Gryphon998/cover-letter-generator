@@ -53,7 +53,7 @@ const geminiApiKey = "AIzaSyCNubn4ZhAaG4Kuh8EXausVP5BVArmE_aE";
 
 function extractJobDescription() {
     const selectors = [
-        // "div[id*='jobDescriptionText']",
+        "div[id*='jobDescriptionText']",
         // "div[id*='job-details']",
         // "div[class*='job-description']",
         // "section.job-description",
@@ -69,7 +69,7 @@ function extractJobDescription() {
 }
 
 function generateCoverLetter(jobDesc) {
-    const prompt = `请根据以下职位描述和我的简历，为我生成一封英文 cover letter，语气自然、真诚、有条理。
+    const prompt = `Based on the following job description and my resume, please write a concise, natural, and well-structured cover letter in English. Do not include placeholders or instructions to replace content. Only output the cover letter text, with no additional suggestions.
 
 【职位描述】
 ${jobDesc}
@@ -110,7 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 target: { tabId: tabs[0].id },
                 func: extractJobDescription,
             }, (results) => {
-                const jobDesc = results?.[0]?.result || "未找到职位描述。";
+                const jobDesc = results?.[0]?.result;
+                if (!jobDesc || jobDesc === "职位描述未找到。") {
+                    document.getElementById("output").innerText = "❗未能提取到职位描述，请确认是否在职位页面上。";
+                    return;
+                }
                 generateCoverLetter(jobDesc);
             });
         });
