@@ -3,13 +3,18 @@
   "name": "Job Description Extractor",
   "version": "1.0",
   "description": "Extracts job descriptions from a job listing page.",
-  "permissions": ["scripting", "activeTab"],
+  "permissions": ["scripting", "activeTab", "storage"],
   "host_permissions": [
     "https://www.linkedin.com/*",
     "https://www.indeed.com/*",
     "https://generativelanguage.googleapis.com/*"
   ],
-
+  "web_accessible_resources": [
+    {
+      "resources": ["callback.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

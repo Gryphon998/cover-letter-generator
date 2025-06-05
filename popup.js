@@ -50,16 +50,55 @@ Systems & Tools: Linux/UNIX, Git, Docker, Kubernetes, Jenkins, Postman, MyBatis,
 `;
 
 const geminiApiKey = "AIzaSyCNubn4ZhAaG4Kuh8EXausVP5BVArmE_aE";
+// popup.js
+const COGNITO_LOGIN_URL = `https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/login?client_id=156rthlibtmbhtm7sk9atq6ous&response_type=code&scope=email+openid+phone&redirect_uri=chrome-extension://kfiapkgkkfmacpmjmbnpnpchjbbnoegd/callback.html`;
+
+document.addEventListener("DOMContentLoaded", () => {
+    const statusEl = document.getElementById("status");
+    const loginBtn = document.getElementById("login-btn");
+    const logoutBtn = document.getElementById("logout-btn");
+
+    chrome.storage.local.get(["id_token"], (result) => {
+        if (result.id_token) {
+            statusEl.textContent = "✅ 已登录";
+            loginBtn.style.display = "none";
+            logoutBtn.style.display = "inline-block";
+        } else {
+            statusEl.textContent = "未登录";
+            loginBtn.style.display = "inline-block";
+            logoutBtn.style.display = "none";
+        }
+    });
+
+    loginBtn.addEventListener("click", () => {
+        chrome.tabs.create({ url: COGNITO_LOGIN_URL });
+    });
+
+    logoutBtn.addEventListener("click", () => {
+        chrome.storage.local.remove(["id_token"], () => {
+            const logoutUrl = "https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/logout" +
+                "?client_id=156rthlibtmbhtm7sk9atq6ous" +
+                "&logout_uri=chrome-extension://kfiapkgkkfmacpmjmbnpnpchjbbnoegd/popup.html\n";
+            chrome.tabs.create({ url: logoutUrl });
+            statusEl.textContent = "已登出";
+            loginBtn.style.display = "inline-block";
+            logoutBtn.style.display = "none";
+        });
+    });
+});
 
 function extractJobDescription() {
     const selectors = [
-        "div[id*='jobDescriptionText']",
-        // "div[id*='job-details']",
+        // "div[id*='jobDescriptionText']",
+        // // "div[id*='job-details']",
+        // // "div[class*='job-description']",
+        // // "section.job-description",
+        // // "article",
         // "div[class*='job-description']",
-        // "section.job-description",
-        // "article",
-        "div[class*='job-description']",
-        "section.job-description"
+        // "section.job-description"
+        "div[class*='jobs-box__html-content']",
+        "div[id='job-details']",
+        "div[class*='jobs-description-content__text']"
     ];
     for (const sel of selectors) {
         const el = document.querySelector(sel);
