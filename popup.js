@@ -49,7 +49,6 @@ Frameworks: Spring, Spring Boot, React.js, .NET, JUnit, Mockito, MySQL, MongoDB,
 Systems & Tools: Linux/UNIX, Git, Docker, Kubernetes, Jenkins, Postman, MyBatis, Maven, Gradle, Tomcat, Nginx
 `;
 
-const geminiApiKey = "AIzaSyCNubn4ZhAaG4Kuh8EXausVP5BVArmE_aE";
 // popup.js
 const COGNITO_LOGIN_URL = `https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/login?client_id=156rthlibtmbhtm7sk9atq6ous&response_type=code&scope=email+openid+phone&redirect_uri=chrome-extension://kfiapkgkkfmacpmjmbnpnpchjbbnoegd/callback.html`;
 
@@ -116,30 +115,39 @@ ${jobDesc}
 【我的简历】
 ${resume}`;
 
-    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            contents: [
-                {
-                    parts: [
-                        { text: prompt }
-                    ]
-                }
-            ]
+    chrome.storage.local.get(["geminiApiKey"], (result) => {
+        const apiKey = result.geminiApiKey;
+
+        if (!apiKey) {
+            document.getElementById("output").innerText = "❗ 请先保存 Gemini API Key。";
+            return;
+        }
+
+        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        parts: [
+                            { text: prompt }
+                        ]
+                    }
+                ]
+            })
         })
-    })
-        .then(res => res.json())
-        .then(data => {
-            const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "生成失败，请检查输出格式。";
-            document.getElementById("output").innerText = output;
-        })
-        .catch(err => {
-            console.error("Gemini API error:", err);
-            document.getElementById("output").innerText = "请求失败，请打开控制台查看错误。";
-        });
+            .then(res => res.json())
+            .then(data => {
+                const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "生成失败，请检查输出格式。";
+                document.getElementById("output").innerText = output;
+            })
+            .catch(err => {
+                console.error("Gemini API error:", err);
+                document.getElementById("output").innerText = "请求失败，请打开控制台查看错误。";
+            });
+    });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -158,4 +166,56 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    const saveKeyBtn = document.getElementById("save-key-btn");
+    const testKeyBtn = document.getElementById("test-key-btn");
+    const statusDiv = document.getElementById("status");
+
+    if (saveKeyBtn) {
+        saveKeyBtn.addEventListener("click", () => {
+            const apiKey = document.getElementById("api-key-input").value.trim();
+
+            if (!apiKey) {
+                statusDiv.textContent = "❌ 请输入一个 API Key。";
+                return;
+            }
+
+            chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
+                statusDiv.textContent = "✅ API Key 已保存！";
+            });
+        });
+    }
+
+    if (testKeyBtn) {
+        testKeyBtn.addEventListener("click", async () => {
+            chrome.storage.local.get(["geminiApiKey"], async (result) => {
+                const apiKey = result.geminiApiKey;
+
+                if (!apiKey) {
+                    statusDiv.textContent = "❌ 尚未保存 Gemini API Key。";
+                    return;
+                }
+
+                try {
+                    const response = await fetch("https://generativelanguage.googleapis.com/v1/models", {
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-goog-api-key": apiKey
+                        }
+                    });
+
+                    if (response.ok) {
+                        statusDiv.textContent = "✅ Gemini API Key 有效！";
+                    } else {
+                        statusDiv.textContent = `❌ API Key 无效（状态码 ${response.status}）`;
+                    }
+                } catch (error) {
+                    statusDiv.textContent = "❌ 验证 Key 时出错。";
+                    console.error("验证 Gemini API Key 失败:", error);
+                }
+            });
+        });
+    }
 });
