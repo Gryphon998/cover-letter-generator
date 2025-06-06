@@ -97,7 +97,8 @@ function extractJobDescription() {
         // "section.job-description"
         "div[class*='jobs-box__html-content']",
         "div[id='job-details']",
-        "div[class*='jobs-description-content__text']"
+        "div[class*='jobs-description-content__text']",
+        "div[data-hook='right-content']"
     ];
     for (const sel of selectors) {
         const el = document.querySelector(sel);
