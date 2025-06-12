@@ -52,20 +52,45 @@ Systems & Tools: Linux/UNIX, Git, Docker, Kubernetes, Jenkins, Postman, MyBatis,
 // popup.js
 const COGNITO_LOGIN_URL = `https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/login?client_id=156rthlibtmbhtm7sk9atq6ous&response_type=code&scope=email+openid+phone&redirect_uri=chrome-extension://kfiapkgkkfmacpmjmbnpnpchjbbnoegd/callback.html`;
 
+
 document.addEventListener("DOMContentLoaded", () => {
     const statusEl = document.getElementById("status");
     const loginBtn = document.getElementById("login-btn");
     const logoutBtn = document.getElementById("logout-btn");
+    const uploadBtn = document.getElementById("upload-resume-btn");
+    const fileInput = document.getElementById("resume-file");
 
     chrome.storage.local.get(["id_token"], (result) => {
         if (result.id_token) {
             statusEl.textContent = "✅ 已登录";
             loginBtn.style.display = "none";
             logoutBtn.style.display = "inline-block";
+            uploadBtn.style.display = "inline-block"; // 👈 显示上传按钮
+
+            Auth.currentCredentials()
+            .then(session => {
+                console.log("✅ 已登录，无需重新 federatedSignIn");
+                // 如果你想显示上传按钮或做其他已登录操作，可以放在这里
+            })
+            .catch(() => {
+                // 如果没有登录，则执行 federatedSignIn
+                Auth.federatedSignIn(
+                'cognito-idp.us-east-1.amazonaws.com/us-east-1_Y9vo1V9OU',
+                {
+                    token: result.id_token,
+                    expires_at: Date.now() + 3600000,
+                }
+                ).then(credentials => {
+                    console.log('✅ 获取凭证成功', credentials);
+                }).catch(err => {
+                    console.error('❌ federatedSignIn 失败', err);
+                });
+  });
         } else {
             statusEl.textContent = "未登录";
             loginBtn.style.display = "inline-block";
             logoutBtn.style.display = "none";
+            uploadBtn.style.display = "none";
         }
     });
 
@@ -82,7 +107,33 @@ document.addEventListener("DOMContentLoaded", () => {
             statusEl.textContent = "已登出";
             loginBtn.style.display = "inline-block";
             logoutBtn.style.display = "none";
+            uploadBtn.style.display = "none";
         });
+    });
+
+    // 👇 上传按钮逻辑
+    uploadBtn.addEventListener("click", () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener("change", async () => {
+        const fileInput = document.getElementById("resume-file");
+        const file = fileInput.files[0];
+
+        if (!file) {
+            document.getElementById("output").textContent = "❌ 请先选择一个文件。";
+            return;
+        }
+
+        try {
+            await Amplify.Storage.put(`resumes/${file.name}`, file, {
+                contentType: file.type
+            });
+            document.getElementById("output").textContent = "✅ 简历上传成功！";
+        } catch (err) {
+            console.error("上传失败：", err);
+            document.getElementById("output").textContent = "❌ 上传失败，请检查控制台。";
+        }
     });
 });
 

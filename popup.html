@@ -10,8 +10,14 @@
     <div id="status">正在检查登录状态...</div>
     <button id="login-btn" style="display:none;">登录</button>
     <button id="logout-btn" style="display:none;">登出</button>
+    <!-- 上传简历相关 -->
+    <input type="file" id="resume-file" style="display: none;" />
+    <button id="upload-resume-btn" style="display: none;">上传简历</button>
+
     <button id="generate">从页面生成求职信</button>
     <div id="output">点击上方按钮开始生成</div>
+    <script src="libs/aws-amplify.min.js"></script>
+    <script src="amplify.js"></script>
     <script src="popup.js"></script>
     <h3>设置 Gemini API Key</h3>
     <input type="text" id="api-key-input" placeholder="粘贴你的 Gemini API Key" style="width: 100%;" />
