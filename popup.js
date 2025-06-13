@@ -1,57 +1,6 @@
-const resume = `Qiyang Huangfu
-qiyanghuangfu@gmail.com | (774) 262-3747 | linkedin.com/in/qiyanghuangfu/
-Education
-Arizona State University 2021/09 – 2025/06
-Master of Science in Computer Science, GPA 3.53/4.0 Tempe, AZ
-Worcester Polytechnic Institute 2014/09 – 2016/05
-Master of Science in Operation Analytics and Management, GPA 3.54/4.0 Worcester, MA
-Work Experience
-Homesite Insurance 2024/05 – 2024/08
-Software Engineer Intern Boston, MA
-• Migrated the Costco membership eligibility service from AWS API Gateway to GCP Apigee, resulting in a 13% reduction
-in average response latency.
-• Authored an OpenAPI 3.0 YAML file, defining 5 RESTful endpoints with Apigee-specific configurations.
-• Implemented a GitLab CI pipeline to automate OpenAPI Specifications validation and Apigee proxy deployment.
-• Drafted detailed integration proposal for Apigee onboarding procedures, security protocols, and environment setup.
-• Enhanced exception handling in Spring Boot architecture by refining 6 exception classes and refactoring error messaging,
-which reduced ambiguous 400 and 500 errors by 40% in staging.
-• Accomplished unit tests with JUnit and Mockito, achieving full test coverage, and conducted integration tests using
-Postman with API key and AzureAD bearer token as authentications.
-Projects
-E-Commerce Platform - Full-Stack Application | Java, JavaScript 2022/07 – 2022/12
-• Developed an E-Commerce platform that provides online shopping capabilities, including user registration, merchandise
-categorization, shopping cart management, and order processing.
-• Created a front-end website using React.js to communicate with the back-end via HTTP.
-• Created a back-end system using Spring Boot and exposed RESTful APIs with comprehensive request validation and
-layered architecture.
-• Employed MySQL to store structured data, while utilizing MyBatis to perform database operations.
-• Deployed servlet on Apache Tomcat and utilized Nginx as a reverse proxy server to handle request routing and enable
-load balancing and static resource optimization.
-Bank System - Distributed Application | Python 2023/02 – 2023/05
-• Designed a distributed system that emulates multiple customers managing a single bank account across various branches,
-ensuring distributed consistency with Lamport’s Logical Clock algorithm.
-• Developed the system using multiprocessing, and utilizing gRPC for inter-process communication with protobufs.
-• Expanded the modules for Docker integration to implement a genuine distributed system, employing Docker Compose
-to manage the container dependencies and connections.
-• Introduced MongoDB as the database to store the logic clock, replacing the previous in-memory storage.
-• Deployed the containers using Kubernetes, and set up a Jenkins pipeline with automated build, testing, and deployment
-processes for CI/CD.
-Plant Propagation Management System - AWS Application | Python 2023/06 – 2023/09
-• Designed and developed a system on AWS Serverless using AWS Lambda, provided functionality for plants and cuttings
-management, hosted frontend webpages in Amazon S3, and accelerated content delivery with Amazon CloudFront.
-• Utilized Amazon API Gateway to establish RESTful APIs, and employed Amazon Cognito to handle user authentications.
-• Stored plant and cuttings information in Amazon DynamoDB, while improving data query performance by 12% through
-the implementation of GSIs (Global Secondary Indexes).
-• Enabled TTL (Time to Live) for plant records to create reminders for watering or applying fertilizer via SMS or email.
-Skills
-Programming Languages: Java, C#, Python, JavaScript, HTML/CSS, SQL, Shell Script
-Frameworks: Spring, Spring Boot, React.js, .NET, JUnit, Mockito, MySQL, MongoDB, gRPC, AWS Serverless
-Systems & Tools: Linux/UNIX, Git, Docker, Kubernetes, Jenkins, Postman, MyBatis, Maven, Gradle, Tomcat, Nginx
-`;
-
 // popup.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL("libs/pdf.worker.min.js");
 const COGNITO_LOGIN_URL = `https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/login?client_id=156rthlibtmbhtm7sk9atq6ous&response_type=code&scope=email+openid+phone&redirect_uri=chrome-extension://kfiapkgkkfmacpmjmbnpnpchjbbnoegd/callback.html`;
-
 
 document.addEventListener("DOMContentLoaded", () => {
     const statusEl = document.getElementById("status");
@@ -68,24 +17,27 @@ document.addEventListener("DOMContentLoaded", () => {
             uploadBtn.style.display = "inline-block"; // 👈 显示上传按钮
 
             Auth.currentCredentials()
-            .then(session => {
-                console.log("✅ 已登录，无需重新 federatedSignIn");
-                // 如果你想显示上传按钮或做其他已登录操作，可以放在这里
-            })
-            .catch(() => {
-                // 如果没有登录，则执行 federatedSignIn
-                Auth.federatedSignIn(
-                'cognito-idp.us-east-1.amazonaws.com/us-east-1_Y9vo1V9OU',
-                {
-                    token: result.id_token,
-                    expires_at: Date.now() + 3600000,
-                }
-                ).then(credentials => {
-                    console.log('✅ 获取凭证成功', credentials);
-                }).catch(err => {
+                .then(session => {
+                    if (!session.identityId) {
+                    console.log("⚠️ 没有有效身份，执行 federatedSignIn");
+                    throw new Error("Missing identityId");
+                    }
+                    console.log("✅ 已登录，无需重新 federatedSignIn");
+                })
+                .catch(() => {
+                    console.log("⚠️ 尝试 federatedSignIn...");
+                    Auth.federatedSignIn(
+                    'cognito-idp.us-east-1.amazonaws.com/us-east-1_Y9vo1V9OU',
+                    {
+                        token: result.id_token,
+                        expires_at: Date.now() + 3600000,
+                    }
+                    ).then(credentials => {
+                    console.log('✅ federatedSignIn 成功，凭证：', credentials);
+                    }).catch(err => {
                     console.error('❌ federatedSignIn 失败', err);
+                    });
                 });
-  });
         } else {
             statusEl.textContent = "未登录";
             loginBtn.style.display = "inline-block";
@@ -111,6 +63,27 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
+    // pdf转txt
+    async function extractPdfText(file) {
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          let text = "";
+      
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            const pageText = content.items.map(item => item.str).join(" ");
+            text += pageText + "\n";
+          }
+      
+          return text.trim();
+        } catch (err) {
+          console.error("❌ PDF 解析失败：", err);
+          throw err; // 确保错误冒泡出去
+        }
+      }      
+
     // 👇 上传按钮逻辑
     uploadBtn.addEventListener("click", () => {
         fileInput.click();
@@ -126,9 +99,26 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            await Amplify.Storage.put(`resumes/${file.name}`, file, {
-                contentType: file.type
+            const resumeKey = `resumes/${file.name}`;
+            const textKey = resumeKey.replace(".pdf", ".txt");
+
+            // 1. 上传 PDF
+            await Amplify.Storage.put(resumeKey, file, {
+                contentType: file.type,
             });
+
+            console.log("1");
+
+            // 2. 提取并上传 TXT
+            const extractedText = await extractPdfText(file);
+            const textBlob = new Blob([extractedText], { type: "text/plain" });
+            console.log("提取的文本长度：", extractedText.length);
+            console.log("部分内容预览：", extractedText.slice(0, 200));
+
+            await Amplify.Storage.put(textKey, textBlob, {
+                contentType: "text/plain",
+            });
+            console.log("2");
             document.getElementById("output").textContent = "✅ 简历上传成功！";
         } catch (err) {
             console.error("上传失败：", err);
@@ -158,48 +148,58 @@ function extractJobDescription() {
     return "职位描述未找到。";
 }
 
-function generateCoverLetter(jobDesc) {
-    const prompt = `Based on the following job description and my resume, please write a concise, natural, and well-structured cover letter in English. Do not include placeholders or instructions to replace content. Only output the cover letter text, with no additional suggestions.
+async function generateCoverLetter(jobDesc) {
+    try {
+        // 从 S3 获取简历文件（txt）
+        const resumeFile = await Amplify.Storage.get("resumes/yourname.txt", { download: true });
+        const text = await resumeFile.Body.text();
 
-【职位描述】
-${jobDesc}
+        const prompt = `Based on the following job description and my resume, please write a concise, natural, and well-structured cover letter in English. Do not include placeholders or instructions to replace content. Only output the cover letter text, with no additional suggestions.
 
-【我的简历】
-${resume}`;
+                        【职位描述】
+                        ${jobDesc}
 
-    chrome.storage.local.get(["geminiApiKey"], (result) => {
-        const apiKey = result.geminiApiKey;
+                        【我的简历】
+                        ${text}`;
 
-        if (!apiKey) {
-            document.getElementById("output").innerText = "❗ 请先保存 Gemini API Key。";
-            return;
-        }
+        // 取出存储的 Gemini API Key
+        chrome.storage.local.get(["geminiApiKey"], async (result) => {
+            const apiKey = result.geminiApiKey;
 
-        fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                contents: [
-                    {
-                        parts: [
-                            { text: prompt }
+            if (!apiKey) {
+                document.getElementById("output").innerText = "❗ 请先保存 Gemini API Key。";
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        contents: [
+                            {
+                                parts: [
+                                    { text: prompt }
+                                ]
+                            }
                         ]
-                    }
-                ]
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
+                    })
+                });
+
+                const data = await response.json();
                 const output = data.candidates?.[0]?.content?.parts?.[0]?.text || "生成失败，请检查输出格式。";
                 document.getElementById("output").innerText = output;
-            })
-            .catch(err => {
+            } catch (err) {
                 console.error("Gemini API error:", err);
                 document.getElementById("output").innerText = "请求失败，请打开控制台查看错误。";
-            });
-    });
+            }
+        });
+    } catch (err) {
+        console.error("加载简历失败:", err);
+        document.getElementById("output").innerText = "❌ 加载简历失败，请检查控制台。";
+    }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
