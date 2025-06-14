@@ -99,8 +99,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         try {
-            const resumeKey = `resumes/${file.name}`;
-            const textKey = resumeKey.replace(".pdf", ".txt");
+            const credentials = await Auth.currentCredentials();
+            const userId = credentials.identityId;
+
+            const resumeKey = `resumes/${userId}.pdf`;
+            const textKey = `resumes/${userId}.txt`;
 
             // 1. 上传 PDF
             await Amplify.Storage.put(resumeKey, file, {
