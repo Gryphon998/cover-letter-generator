@@ -153,9 +153,12 @@ function extractJobDescription() {
 
 async function generateCoverLetter(jobDesc) {
     try {
+        const credentials = await Auth.currentCredentials();
+        const userId = credentials.identityId;
         // 从 S3 获取简历文件（txt）
-        const resumeFile = await Amplify.Storage.get("resumes/yourname.txt", { download: true });
-        const text = await resumeFile.Body.text();
+        const textKey = `resumes/${userId}.txt`;
+        const resumeFile = await Amplify.Storage.get(textKey, { download: true });
+        const resumeText = await resumeFile.Body.text();
 
         const prompt = `Based on the following job description and my resume, please write a concise, natural, and well-structured cover letter in English. Do not include placeholders or instructions to replace content. Only output the cover letter text, with no additional suggestions.
 
@@ -163,7 +166,7 @@ async function generateCoverLetter(jobDesc) {
                         ${jobDesc}
 
                         【我的简历】
-                        ${text}`;
+                        ${resumeText}`;
 
         // 取出存储的 Gemini API Key
         chrome.storage.local.get(["geminiApiKey"], async (result) => {
