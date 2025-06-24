@@ -1,31 +1,17 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <title>Job Description</title>
-    <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-    <h2>求职信生成器</h2>
-    <div id="status">正在检查登录状态...</div>
-    <button id="login-btn" style="display:none;">登录</button>
-    <button id="logout-btn" style="display:none;">登出</button>
-    <!-- 上传简历相关 -->
-    <input type="file" id="resume-file" style="display: none;" />
-    <button id="upload-resume-btn" style="display: none;">上传简历</button>
-
-    <button id="generate">从页面生成求职信</button>
-    <div id="output">点击上方按钮开始生成</div>
-    <script src="libs/aws-amplify.min.js"></script>
-    <script src="libs/pdf.min.js"></script>
-    <script src="amplify.js"></script>
-    <script src="popup.js"></script>
-    <h3>设置 Gemini API Key</h3>
-    <input type="text" id="api-key-input" placeholder="粘贴你的 Gemini API Key" style="width: 100%;" />
-    <button id="save-key-btn">保存 API Key</button>
-    <button id="test-key-btn">测试 Gemini API Key</button>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>求职信生成器</title>
+  </head>
+  <body>
+    <!-- 引入外部库 -->
+    <script src="/libs/aws-amplify.min.js"></script>
+    <script src="/libs/pdf.min.js"></script>
+    <script type="module" src="/amplify.js"></script>
+    <!-- Vue 应用将会被挂载到这里 -->
+    <div id="app"></div>
+    <!-- 引入编译后的 JS 文件 -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
-
-
-

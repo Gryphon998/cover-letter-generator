@@ -11,7 +11,14 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["callback.html"],
+      "resources": [
+        "callback.html",
+        "callback.js",
+        "amplify.js",
+        "libs/aws-amplify.min.js",  
+        "libs/pdf.min.js",
+        "libs/pdf.worker.min.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
