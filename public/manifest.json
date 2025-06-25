@@ -3,7 +3,7 @@
   "name": "Job Description Extractor",
   "version": "1.0",
   "description": "Extracts job descriptions from a job listing page.",
-  "permissions": ["scripting", "activeTab", "storage"],
+  "permissions": ["scripting", "activeTab", "storage", "sidePanel"],
   "host_permissions": [
     "https://www.linkedin.com/*",
     "https://www.indeed.com/*",
@@ -23,15 +23,18 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icon.png",
       "48": "icon.png",
       "128": "icon.png"
-    }
+    },
+    "default_title": "Open Side Panel"
   },
   "background": {
     "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "content_scripts": [
     {

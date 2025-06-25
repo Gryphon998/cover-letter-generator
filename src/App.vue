@@ -26,13 +26,19 @@
     <hr />
 
     <!-- API Key Setup -->
-    <h3>设置 Gemini API Key</h3>
+    <h3>Gemini API Key</h3>
     <div class="api-key-section">
-      <input type="text" v-model="apiKeyInput" placeholder="粘贴你的 Gemini API Key" />
-      <div class="button-group">
-        <button @click="saveApiKey">保存 API Key</button>
-        <button @click="testApiKey">测试 API Key</button>
-      </div>
+      <template v-if="!apiKeySaved">
+        <input type="text" v-model="apiKeyInput" placeholder="粘贴你的 Gemini API Key" />
+        <div class="button-group">
+          <button @click="saveApiKey">保存 API Key</button>
+          <button @click="testApiKey">测试 API Key</button>
+        </div>
+      </template>
+      <template v-else>
+        <div class="saved-api-key">🔐 API Key 已保存</div>
+        <button @click="clearApiKey">更换 API Key</button>
+      </template>
     </div>
   </div>
 </template>
@@ -59,8 +65,10 @@ const statusClass = computed(() => {
 const EXTENSION_ID = 'apddimmlhndedehnanpdodilgidglmbm'; 
 const redirectUri = encodeURIComponent(`chrome-extension://${chrome.runtime.id}/callback.html`);
 
-const COGNITO_LOGIN_URL = `https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/login?client_id=156rthlibtmbhtm7sk9atq6ous&response_type=code&scope=openid+profile+email&redirect_uri=chrome-extension://${chrome.runtime.id}/callback.html`;
+const COGNITO_LOGIN_URL = `https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/login?client_id=156rthlibtmbhtm7sk9atq6ous&response_type=code&scope=email+openid+profile&redirect_uri=chrome-extension://${chrome.runtime.id}/callback.html`;
 const COGNITO_LOGOUT_URL = `https://us-east-1y9vo1v9ou.auth.us-east-1.amazoncognito.com/logout?client_id=156rthlibtmbhtm7sk9atq6ous&logout_uri=chrome-extension://${EXTENSION_ID}/popup.html`;
+const apiKeySaved = ref(false);
+// const apiKeyInput = ref('');
 
 // --- Lifecycle Hooks ---
 onMounted(() => {
@@ -319,6 +327,15 @@ function saveApiKey() {
   }
   chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
     statusMessage.value = "✅ API Key 已保存！";
+    apiKeySaved.value = true;
+  });
+}
+
+function clearApiKey() {
+  chrome.storage.local.remove("geminiApiKey", () => {
+    apiKeyInput.value = '';
+    apiKeySaved.value = false;
+    statusMessage.value = '✅ API Key 已清除。';
   });
 }
 
