@@ -1,0 +1,15 @@
+{
+  "title": "Cover Letter Generator",
+  "login": "Login",
+  "logout": "Logout",
+  "upload_resume": "Upload Resume",
+  "generate_cover_letter": "Generate Cover Letter from Page",
+  "api_key_placeholder": "Paste your Gemini API Key",
+  "save_api_key": "Save API Key",
+  "test_api_key": "Test API Key",
+  "apiKeySaved": "API Key Saved",
+  "changeApiKey": "Change API Key",
+  "statusChecking": "Checking login status...",
+  "outputMessage": "Click the button above to start generating",
+  "loginMessage": "Hello!"
+}

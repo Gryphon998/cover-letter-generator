@@ -1,63 +1,84 @@
 <template>
   <div class="container">
-    <h2>求职信生成器</h2>
+    <h2>{{ t('title') }}</h2>
     
+    <div class="language-switcher">
+    <button @click="toggleLanguage">
+      {{ currentLanguage === 'en' ? '中文' : 'English' }}
+    </button>
+    </div>
+
     <!-- Status display -->
     <div id="status" :class="statusClass">{{ statusMessage }}</div>
 
     <!-- Login/Logout button -->
     <div class="button-group">
-      <button v-if="!isLoggedIn" @click="login">登录</button>
-      <button v-if="isLoggedIn" @click="logout">登出</button>
+      <button v-if="!isLoggedIn" @click="login">{{ t('login') }}</button>
+      <button v-if="isLoggedIn" @click="logout">{{ t('logout') }}</button>
     </div>
-
-    <!-- Upload resume -->
-    <div v-if="isLoggedIn" class="button-group">
-      <input type="file" ref="fileInput" @change="handleResumeFileChange" style="display: none;" accept=".pdf" />
-      <button @click="triggerResumeUpload">上传简历</button>
-    </div>
-
-    <!-- Generate a cover letter -->
-    <button id="generate" @click="generate">从页面生成求职信</button>
     
-    <!-- Output area -->
-    <div id="output">{{ outputMessage }}</div>
+ 
     
-    <hr />
+    <div v-if="isLoggedIn">
 
-    <!-- API Key Setup -->
-    <h3>Gemini API Key</h3>
-    <div class="api-key-section">
-      <template v-if="!apiKeySaved">
-        <input type="text" v-model="apiKeyInput" placeholder="粘贴你的 Gemini API Key" />
-        <div class="button-group">
-          <button @click="saveApiKey">保存 API Key</button>
-          <button @click="testApiKey">测试 API Key</button>
-        </div>
-      </template>
-      <template v-else>
-        <div class="saved-api-key">🔐 API Key 已保存</div>
-        <button @click="clearApiKey">更换 API Key</button>
-      </template>
+      <!-- Upload resume -->
+      <div class="button-group">
+        <input type="file" ref="fileInput" @change="handleResumeFileChange" style="display: none;" accept=".pdf" />
+        <button @click="triggerResumeUpload">{{ t('upload_resume') }}</button>
+      </div>
+
+      <!-- Generate a cover letter -->
+      <button id="generate" @click="generate">{{ t('generate_cover_letter') }}</button>
+    
+      <!-- Output area -->
+      <div id="output">{{ outputMessage }}</div>
+    
+      <hr />
+
+      <!-- API Key Setup -->
+      <h3>Gemini API Key</h3>
+      <div class="api-key-section">
+        <template v-if="!apiKeySaved">
+          <input type="text" v-model="apiKeyInput" :placeholder="t('api_key_placeholder')" />
+          <div class="button-group">
+            <button @click="saveApiKey">{{ t('save_api_key') }}</button>
+            <button @click="testApiKey">{{ t('test_api_key') }}</button>
+          </div>
+        </template>
+        <template v-else>
+          <div class="saved-api-key">{{ t('api_key_saved') }}</div>
+          <button @click="clearApiKey">{{ t('change_api_key') }}</button>
+        </template>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 // --- Vue Reactive State Definition ---
 // `ref` is used to create reactive variables
+const { t, locale } = useI18n();
 const isLoggedIn = ref(false);
-const statusMessage = ref('正在检查登录状态...');
+const statusMessage = ref(t('statusChecking'));
 const outputMessage = ref('点击上方按钮开始生成');
 const apiKeyInput = ref('');
-const fileInput = ref(null); // 用于引用 <input type="file"> 元素
+const fileInput = ref(null);
+const currentLanguage = ref(locale.value);
+
+const toggleLanguage = () => {
+  const newLang = currentLanguage.value === 'en' ? 'zh' : 'en';
+  currentLanguage.value = newLang;
+  locale.value = newLang
+  localStorage.setItem('locale', newLang)
+}
 
 // Dynamically compute the CSS class for the status message
 const statusClass = computed(() => {
-  if (statusMessage.value.includes('✅')) return 'success';
-  if (statusMessage.value.includes('❌') || statusMessage.value.includes('❗')) return 'error';
+  if (statusMessage.value == t('loginMessage')) return 'success';
+  else return 'error';
   return '';
 });
 
@@ -99,7 +120,7 @@ function checkLoginStatus() {
   chrome.storage.local.get(["id_token"], async (result) => {
     if (result.id_token) {
       isLoggedIn.value = true;
-      statusMessage.value = "✅ 已登录";
+      statusMessage.value = t('loginMessage');
 
       try {
         // Attempt to get AWS temporary credentials
@@ -373,6 +394,22 @@ async function testApiKey() {
   width: 320px;
   background-color: #f9f9f9;
   color: #333;
+}
+
+.language-switcher {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.language-switcher button {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #007aff;
+  border: 1px solid #ccc;
+  cursor: pointer;
 }
 
 h2, h3 {
