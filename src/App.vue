@@ -9,7 +9,13 @@
     </div>
 
     <!-- Status display -->
-    <div id="status" :class="statusClass">{{ statusMessage }}</div>
+    <div id="status" :class="statusClass">{{ isLoggedIn ? t('loginMessage') : t('not_logged_in') }}</div>
+
+    <!-- Operation feedback area (only displayed when outputMessage exists) -->
+    <div v-if="globalMessage" class="global-message">
+      {{ globalMessage }}
+    </div>
+
 
     <!-- Login/Logout button -->
     <div class="button-group">
@@ -62,8 +68,15 @@ import { useI18n } from 'vue-i18n';
 // `ref` is used to create reactive variables
 const { t, locale } = useI18n();
 const isLoggedIn = ref(false);
-const statusMessage = ref(t('statusChecking'));
-const outputMessage = ref('点击上方按钮开始生成');
+const statusMessage = computed(() => t('statusChecking'));
+const currentOutputKey = ref('cover_letter_outputMessage');
+const outputMessage = computed(() => {
+  return currentOutputKey.value ? t(currentOutputKey.value) : '';
+});
+const currentGlobalKey = ref('');
+const globalMessage = computed(() => {
+  return currentGlobalKey.value ? t(currentGlobalKey.value) : '';
+});
 const apiKeyInput = ref('');
 const fileInput = ref(null);
 const currentLanguage = ref(locale.value);
@@ -76,11 +89,11 @@ const toggleLanguage = () => {
 }
 
 // Dynamically compute the CSS class for the status message
-const statusClass = computed(() => {
-  if (statusMessage.value == t('loginMessage')) return 'success';
-  else return 'error';
-  return '';
-});
+// const statusClass = computed(() => {
+//   if (statusMessage.value == t('loginMessage')) return 'success';
+//   else return 'error';
+//   return '';
+// });
 
 // --- Constant Definitions ---
 const EXTENSION_ID = 'apddimmlhndedehnanpdodilgidglmbm'; 
@@ -120,7 +133,6 @@ function checkLoginStatus() {
   chrome.storage.local.get(["id_token"], async (result) => {
     if (result.id_token) {
       isLoggedIn.value = true;
-      statusMessage.value = t('loginMessage');
 
       try {
         // Attempt to get AWS temporary credentials
@@ -128,7 +140,7 @@ function checkLoginStatus() {
 
         if (!credentials || !credentials.identityId) {
           // No valid credentials, perform federatedSignIn    
-          console.log("⚠️ 无有效身份，执行 federatedSignIn");
+          console.log("No valid identity, executing federatedSignIn");
 
           await window.Auth.federatedSignIn(
             'cognito-idp.us-east-1.amazonaws.com/us-east-1_Y9vo1V9OU',
@@ -138,18 +150,18 @@ function checkLoginStatus() {
             }
           );
 
-          console.log("✅ federatedSignIn 成功，已获取临时凭证");
+          console.log("federatedSignIn succeeded, temporary credentials obtained");
         } else {
-          console.log("✅ 已登录，无需重新 federatedSignIn");
+          console.log("Already signed in, no need to re-run federatedSignIn");
         }
       } catch (err) {
-        console.error("❌ 认证失败，重新登录", err);
-        statusMessage.value = "❌ 登录凭证已过期，请重新登录。";
+        console.error("Authentication failed, please log in again", err);
+        currentGlobalKey.value = "authentication_failed";
         logout();
       }
     } else {
       isLoggedIn.value = false;
-      statusMessage.value = "未登录";
+      // statusMessage.value = "未登录";
     }
   });
 }
@@ -165,7 +177,7 @@ function logout() {
   chrome.storage.local.remove(["id_token"], () => {
     chrome.tabs.create({ url: COGNITO_LOGOUT_URL });
     isLoggedIn.value = false;
-    statusMessage.value = "已登出";
+    currentGlobalKey.value = "logout_message";
   });
 }
 
@@ -178,15 +190,15 @@ function triggerResumeUpload() {
 async function handleResumeFileChange(event) {
   const file = event.target.files[0];
   if (!file) {
-    outputMessage.value = "❌ 请先选择一个文件。";
+    currentGlobalKey.value = "choose_file";
     return;
   }
   if (file.type !== 'application/pdf') {
-    outputMessage.value = "❌ 请上传 PDF 格式的简历。";
+    currentGlobalKey.value = "wrong_file_type";
     return;
   }
 
-  outputMessage.value = "⏳ 正在上传和解析简历...";
+  currentGlobalKey.value = "processing_resume_upload";
 
   try {
     const credentials = await Auth.currentCredentials();
@@ -201,7 +213,7 @@ async function handleResumeFileChange(event) {
     // 2. Extract text
     const extractedText = await extractPdfText(file);
     if (!extractedText) {
-        outputMessage.value = "❌ 无法从PDF中提取文本。";
+        currentGlobalKey.value = "extract_text_error";
         return;
     }
     const textBlob = new Blob([extractedText], { type: "text/plain" });
@@ -209,10 +221,10 @@ async function handleResumeFileChange(event) {
     // 3. Upload TXT
     await Amplify.Storage.put(textKey, textBlob, { contentType: "text/plain" });
     
-    outputMessage.value = "✅ 简历上传成功！";
+    currentGlobalKey.value = "resume_upload_success";
   } catch (err) {
-    console.error("上传失败：", err);
-    outputMessage.value = "❌ 上传失败，请检查控制台。";
+    console.error("Upload failed:", err);
+    currentGlobalKey.value = "resume_upload_failed";
   }
 }
 
@@ -230,14 +242,14 @@ async function extractPdfText(file) {
     }
     return text.trim();
   } catch (err) {
-    console.error("❌ PDF 解析失败：", err);
+    console.error("PDF parsing failed:", err);
     throw err;
   }
 }
 
 // Entry function triggered by clicking the generate button
 function generate() {
-  outputMessage.value = "⏳ 正在从页面提取职位描述...";
+  currentGlobalKey.value = "extracting_job_message";
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     // Inject script to extract job description
     chrome.scripting.executeScript({
@@ -247,17 +259,17 @@ function generate() {
       // Handle the result after script execution
       if (chrome.runtime.lastError) {
           console.error(chrome.runtime.lastError);
-          outputMessage.value = "❌ 无法向当前页面注入脚本。请尝试刷新页面。";
+          currentGlobalKey.value = "inject_script_error";
           return;
       }
 
       const jobDesc = results?.[0]?.result;
       if (!jobDesc || jobDesc === "职位描述未找到。") {
-        outputMessage.value = "❗ 未能提取到职位描述，请确认在职位详情页面。";
+        currentGlobalKey.value = "not_found_job_description";
         return;
       }
       
-      outputMessage.value = "✅ 职位描述提取成功，正在生成求职信...";
+      currentGlobalKey.value = "extracting_job_success";
       generateCoverLetter(jobDesc);
     });
   });
@@ -285,7 +297,7 @@ function injectedJobDescriptionExtractor() {
 async function generateCoverLetter(jobDesc) {
   try {
     // 1. Get the resume text
-    outputMessage.value = "⏳ 正在加载您的简历...";
+    currentGlobalKey.value = "loading_resume";
     const credentials = await Auth.currentCredentials();
     const textKey = `resumes/${credentials.identityId}.txt`;
     const resumeFile = await Amplify.Storage.get(textKey, { download: true });
@@ -303,12 +315,12 @@ async function generateCoverLetter(jobDesc) {
     // 3. Retrieve the API Key
     const apiKey = apiKeyInput.value;
     if (!apiKey) {
-      outputMessage.value = "❗ 请先保存您的 Gemini API Key。";
+      currentGlobalKey.value = "lacking_api_key";
       return;
     }
 
     // 4. Call the Gemini API
-    outputMessage.value = "⏳ 正在请求 Gemini API，请稍候...";
+    currentOutputKey.value = "requesting_api";
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -316,25 +328,25 @@ async function generateCoverLetter(jobDesc) {
     });
 
     if (!response.ok) {
-        throw new Error(`API 请求失败，状态码: ${response.status}`);
+        throw new Error(`API request failed with status code: ${response.status}`);
     }
 
     const data = await response.json();
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (generatedText) {
-      outputMessage.value = generatedText;
+      currentOutputKey.value = generatedText;
     } else {
-      console.error("API 响应解析失败", data);
-      outputMessage.value = "生成失败，API 未返回有效内容。请检查控制台。";
+      console.error("Failed to parse API response", data);
+      currentOutputKey.value = "generation_failed";
     }
 
   } catch (err) {
-    console.error("生成求职信时出错:", err);
+    console.error("Error generating cover letter:", err);
     if (err.message.includes("The specified key does not exist")) {
-        outputMessage.value = "❌ 加载简历失败。您是否已经上传了简历？";
+        currentOutputKey.value = "loading_resume_error";
     } else {
-        outputMessage.value = `❌ 请求失败: ${err.message}。请检查控制台获取更多信息。`;
+        currentOutputKey.value = "error_generating_cover_letter";
     }
   }
 }
@@ -343,11 +355,11 @@ async function generateCoverLetter(jobDesc) {
 function saveApiKey() {
   const apiKey = apiKeyInput.value.trim();
   if (!apiKey) {
-    statusMessage.value = "❌ 请输入一个 API Key。";
+    currentGlobalKey.value = "api_key_required";
     return;
   }
   chrome.storage.local.set({ geminiApiKey: apiKey }, () => {
-    statusMessage.value = "✅ API Key 已保存！";
+    // currentGlobalKey.value = "api_key_saved";
     apiKeySaved.value = true;
   });
 }
@@ -356,7 +368,7 @@ function clearApiKey() {
   chrome.storage.local.remove("geminiApiKey", () => {
     apiKeyInput.value = '';
     apiKeySaved.value = false;
-    statusMessage.value = '✅ API Key 已清除。';
+    currentGlobalKey.value = "api_key_cleared";
   });
 }
 
@@ -364,10 +376,10 @@ function clearApiKey() {
 async function testApiKey() {
   const apiKey = apiKeyInput.value.trim();
   if (!apiKey) {
-    statusMessage.value = "❌ 尚未保存 Gemini API Key。";
+    currentGlobalKey.value = "api_key_not_saved";
     return;
   }
-  statusMessage.value = "⏳ 正在验证 Key...";
+  currentGlobalKey.value = "api_key_verifying";
   try {
     const response = await fetch("https://generativelanguage.googleapis.com/v1/models", {
       headers: {
@@ -376,13 +388,13 @@ async function testApiKey() {
       },
     });
     if (response.ok) {
-      statusMessage.value = "✅ Gemini API Key 有效！";
+      currentGlobalKey.value = "api_key_valid";
     } else {
-      statusMessage.value = `❌ API Key 无效（状态码 ${response.status}）`;
+      currentGlobalKey.value = "api_key_invalid";
     }
   } catch (error) {
-    console.error("验证 Gemini API Key 失败:", error);
-    statusMessage.value = "❌ 验证 Key 时出错。";
+    console.error("Failed to validate Gemini API Key:", error);
+    currentGlobalKey.value = "api_key_validation_error";
   }
 }
 </script>
@@ -410,6 +422,17 @@ async function testApiKey() {
   background-color: #007aff;
   border: 1px solid #ccc;
   cursor: pointer;
+}
+
+.status-bar {
+  font-weight: bold;
+  color: #007bff;
+  margin-bottom: 10px;
+}
+
+.output-message {
+  margin-top: 10px;
+  color: #333;
 }
 
 h2, h3 {
