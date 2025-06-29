@@ -2,6 +2,7 @@
   "title": "Cover Letter Generator",
   "login": "Login",
   "logout": "Logout",
+  "copy": "Copy",
   "logout_message": "You have successfully logged out.",
   "upload_resume": "Upload Resume",
   "generate_cover_letter": "Generate Cover Letter from Page",

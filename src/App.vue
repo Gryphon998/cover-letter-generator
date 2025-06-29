@@ -37,7 +37,19 @@
       <button id="generate" @click="generate">{{ t('generate_cover_letter') }}</button>
     
       <!-- Output area -->
-      <div id="output">{{ outputMessage }}</div>
+      <div id="output" class="output-container">
+        <!-- Top toolbar: Copy button on the top right -->
+        <div class="output-toolbar">
+          <button v-if="isCoverLetterReady" @click="copyToClipboard" class="copy-button">
+            {{ t('copy') }}
+          </button>
+        </div>
+
+        <!-- Main content area -->
+        <div class="output-message">
+          {{ isCoverLetterReady ? rawCoverLetter : outputMessage }}
+        </div>
+      </div>
     
       <hr />
 
@@ -87,6 +99,9 @@ const toggleLanguage = () => {
   locale.value = newLang
   localStorage.setItem('locale', newLang)
 }
+
+const isCoverLetterReady = ref(false);
+const rawCoverLetter = ref('');
 
 // Dynamically compute the CSS class for the status message
 // const statusClass = computed(() => {
@@ -293,6 +308,18 @@ function injectedJobDescriptionExtractor() {
   return "职位描述未找到。";
 }
 
+function copyToClipboard() {
+  if (!outputMessage.value) return;
+
+  navigator.clipboard.writeText(rawCoverLetter.value)
+    .then(() => {
+      currentGlobalKey.value = "copied_success";
+    })
+    .catch(() => {
+      currentGlobalKey.value = "copy_failed";
+    });
+}
+
 // Core logic for generating the cover letter
 async function generateCoverLetter(jobDesc) {
   try {
@@ -335,10 +362,13 @@ async function generateCoverLetter(jobDesc) {
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (generatedText) {
-      currentOutputKey.value = generatedText;
+      rawCoverLetter.value = generatedText;
+      currentOutputKey.value = "cover_letter_ready";
+      isCoverLetterReady.value = true;
     } else {
       console.error("Failed to parse API response", data);
       currentOutputKey.value = "generation_failed";
+      isCoverLetterReady.value = false;
     }
 
   } catch (err) {
@@ -433,6 +463,36 @@ async function testApiKey() {
 .output-message {
   margin-top: 10px;
   color: #333;
+}
+
+.output-container {
+  position: relative;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1em;
+  margin-top: 1em;
+  background-color: #fafafa;
+}
+
+.output-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.copy-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #555;
+  transition: background-color 0.2s;
+}
+
+.copy-button:hover {
+  background-color: #e0e0e0;
 }
 
 h2, h3 {

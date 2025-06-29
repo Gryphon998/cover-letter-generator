@@ -2,6 +2,7 @@
   "title": "求职信生成器",
   "login": "登录",
   "logout": "登出",
+  "copy": "复制",
   "logout_message": "你已成功登出。",
   "upload_resume": "上传简历",
   "generate_cover_letter": "从页面生成求职信",
