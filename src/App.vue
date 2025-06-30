@@ -9,7 +9,7 @@
     </div>
 
     <!-- Status display -->
-    <div id="status" :class="statusClass">{{ isLoggedIn ? t('loginMessage') : t('not_logged_in') }}</div>
+    <div id="status" :class="statusClass">{{ isLoggedIn ? t('login_message') : t('not_logged_in') }}</div>
 
     <!-- Operation feedback area (only displayed when outputMessage exists) -->
     <div v-if="globalMessage" class="global-message">
@@ -80,7 +80,7 @@ import { useI18n } from 'vue-i18n';
 // `ref` is used to create reactive variables
 const { t, locale } = useI18n();
 const isLoggedIn = ref(false);
-const statusMessage = computed(() => t('statusChecking'));
+const statusMessage = computed(() => t('check_status'));
 const currentOutputKey = ref('cover_letter_outputMessage');
 const outputMessage = computed(() => {
   return currentOutputKey.value ? t(currentOutputKey.value) : '';
